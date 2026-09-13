@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "Radio Studio Sat",
+    "slug": "radio-studio-sat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "studiosat",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F6F8FC"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "br.com.studiosatweb.radio",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "package": "br.com.studiosatweb.radio",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F6F8FC"
+      },
+      "permissions": [
+        "INTERNET",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "POST_NOTIFICATIONS",
+        "RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "recordAudioAndroid": true
+        }
+      ]
+    ],
+    "extra": {
+      "studiosat": {
+        "portalUrl": "https://www.radio.studiosatweb.com.br",
+        "playerUrl": "https://radio.studiosatweb.com.br",
+        "contentApiUrl": "https://www.radio.studiosatweb.com.br/api/content"
+      },
+      "eas": {
+        "projectId": "REPLACE_AFTER_EAS_INIT"
+      }
+    }
+  }
+}
