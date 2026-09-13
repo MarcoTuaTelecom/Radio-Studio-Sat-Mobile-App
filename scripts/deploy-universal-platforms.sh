@@ -6,7 +6,7 @@ PORTAL_ROOT="${PORTAL_ROOT:-/var/www/studiosat-radio-portal}"
 PUBLIC_HOST="${PUBLIC_HOST:-https://www.radio.studiosatweb.com.br}"
 PUBLIC_DOMAIN="www.radio.studiosatweb.com.br"
 STREAM_DOMAIN="radio.studiosatweb.com.br"
-VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION:-1.1.0}"
 PWA_SRC="$REPO/web/pwa"
 PWA_DEST="$PORTAL_ROOT/listen"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -22,33 +22,57 @@ for cmd in bash python3 curl nginx git; do command -v "$cmd" >/dev/null 2>&1 || 
 [[ -f "$PWA_SRC/manifest.webmanifest" ]] || fail "manifest PWA ausente"
 [[ -f "$PORTAL_ROOT/index.html" ]] || fail "portal root invalido"
 
-# O roteamento /app/ e /listen/ já foi corrigido no NGINX e está funcionando.
-# Este script NÃO reescreve locations do NGINX. Ele apenas valida antes/depois.
+# O Grok já deixou /app/ e o APK funcionando. Aqui preservamos essa configuração.
 printf '\n===== 0. NGINX EXISTENTE =====\n'
 nginx -t
-ok "nginx atual valido; nenhuma rota sera reescrita"
+ok "nginx atual valido; nenhuma location sera reescrita"
 
+# A interface universal pode ser 1.1.0 antes do novo APK existir. Nunca renomeamos
+# um APK antigo como se fosse uma versão nova.
 APK_SOURCE="${APK_SOURCE:-}"
-if [[ -z "$APK_SOURCE" ]]; then
-  for candidate in \
-    "/root/builds/RadioStudioSat-v${VERSION}.apk" \
-    "$PORTAL_ROOT/downloads/apps/RadioStudioSat-v${VERSION}.apk" \
-    "$PORTAL_ROOT/downloads/apps/RadioStudioSat-latest.apk"; do
-    if [[ -f "$candidate" ]]; then APK_SOURCE="$candidate"; break; fi
-  done
+APK_VERSION=""
+if [[ -n "$APK_SOURCE" ]]; then
+  [[ -f "$APK_SOURCE" ]] || fail "APK_SOURCE ausente: $APK_SOURCE"
+else
+  exact="/root/builds/RadioStudioSat-v${VERSION}.apk"
+  exact_public="$PORTAL_ROOT/downloads/apps/RadioStudioSat-v${VERSION}.apk"
+  if [[ -f "$exact" ]]; then APK_SOURCE="$exact"; APK_VERSION="$VERSION"
+  elif [[ -f "$exact_public" ]]; then APK_SOURCE="$exact_public"; APK_VERSION="$VERSION"
+  else
+    latest_versioned="$(find "$PORTAL_ROOT/downloads/apps" -maxdepth 1 -type f -name 'RadioStudioSat-v*.apk' 2>/dev/null | sort -V | tail -1 || true)"
+    [[ -n "$latest_versioned" ]] || fail "nenhum APK versionado existente encontrado"
+    APK_SOURCE="$latest_versioned"
+  fi
 fi
-[[ -n "$APK_SOURCE" && -f "$APK_SOURCE" ]] || fail "nenhum APK existente encontrado"
+
+if [[ -z "$APK_VERSION" ]]; then
+  base="$(basename "$APK_SOURCE")"
+  if [[ "$base" =~ ^RadioStudioSat-v([0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9._-]+)?)\.apk$ ]]; then
+    APK_VERSION="${BASH_REMATCH[1]}"
+  else
+    versioned_same_sha=""
+    sha="$(sha256sum "$APK_SOURCE" | awk '{print $1}')"
+    while IFS= read -r f; do
+      [[ "$(sha256sum "$f" | awk '{print $1}')" == "$sha" ]] && { versioned_same_sha="$f"; break; }
+    done < <(find "$PORTAL_ROOT/downloads/apps" -maxdepth 1 -type f -name 'RadioStudioSat-v*.apk' 2>/dev/null | sort -V -r)
+    [[ -n "$versioned_same_sha" ]] || fail "nao foi possivel determinar a versao real do APK"
+    base="$(basename "$versioned_same_sha")"
+    APK_VERSION="${base#RadioStudioSat-v}"; APK_VERSION="${APK_VERSION%.apk}"
+  fi
+fi
 
 mkdir -p "$BACKUP"
 [[ -d "$PWA_DEST" ]] && cp -a "$PWA_DEST" "$BACKUP/listen.previous"
 [[ -d "$PORTAL_ROOT/app" ]] && cp -a "$PORTAL_ROOT/app" "$BACKUP/app.previous"
 
+echo "UI_VERSION=$VERSION"
 echo "APK_SOURCE=$APK_SOURCE"
+echo "APK_VERSION=$APK_VERSION"
 
 printf '\n===== 1. CENTRAL /app/ =====\n'
-VERSION="$VERSION" APK_SOURCE="$APK_SOURCE" PORTAL_ROOT="$PORTAL_ROOT" PUBLIC_HOST="$PUBLIC_HOST" \
+VERSION="$APK_VERSION" APK_SOURCE="$APK_SOURCE" PORTAL_ROOT="$PORTAL_ROOT" PUBLIC_HOST="$PUBLIC_HOST" \
   bash "$REPO/scripts/deploy-download-page.sh"
-ok "central de instalacao publicada"
+ok "central de instalacao publicada sem falsificar versao do APK"
 
 printf '\n===== 2. APP UNIVERSAL /listen/ =====\n'
 rm -rf "$PWA_DEST"
@@ -129,7 +153,7 @@ printf '\n===== 8. APK EXISTENTE =====\n'
 APK_HEADERS="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/downloads/apps/RadioStudioSat-latest.apk" | tr -d '\r')"
 grep -qiE '^HTTP/(2|1\.1) 200' <<<"$APK_HEADERS" || fail "APK latest HTTP invalido"
 grep -qi '^content-type: application/vnd.android.package-archive' <<<"$APK_HEADERS" || fail "APK latest content-type invalido"
-ok "APK Android continua publicado"
+ok "APK Android continua publicado (versao $APK_VERSION)"
 
 printf '\n===== 9. CINCO STREAMS =====\n'
 for id in radioprincipal radiopop radiorock radioclassicas radiocountry; do
@@ -150,6 +174,8 @@ ok "publicacao externa"
 
 printf '\n========================================\n'
 printf 'STUDIOSAT_MODEL_UI=PASS\n'
+printf 'UI_VERSION=%s\n' "$VERSION"
+printf 'APK_VERSION=%s\n' "$APK_VERSION"
 printf 'INSTALLER=%s/app/\n' "$PUBLIC_HOST"
 printf 'APP=%s/listen/\n' "$PUBLIC_HOST"
 printf 'ANDROID_APK=%s/downloads/apps/RadioStudioSat-latest.apk\n' "$PUBLIC_HOST"
