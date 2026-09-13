@@ -2,6 +2,7 @@
   "expo": {
     "name": "Radio Studio Sat",
     "slug": "radio-studio-sat",
+    "owner": "techprosolutions-inc",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -54,6 +55,9 @@
         "portalUrl": "https://www.radio.studiosatweb.com.br",
         "playerUrl": "https://radio.studiosatweb.com.br",
         "contentApiUrl": "https://www.radio.studiosatweb.com.br/api/content"
+      },
+      "eas": {
+        "projectId": "54defc13-e1ad-4bea-91f3-283d508560fb"
       }
     }
   }
