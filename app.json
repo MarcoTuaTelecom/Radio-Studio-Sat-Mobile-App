@@ -7,14 +7,8 @@
     "icon": "./assets/icon.png",
     "scheme": "studiosat",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F6F8FC"
-    },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "br.com.studiosatweb.radio",
       "infoPlist": {
         "UIBackgroundModes": ["audio"]
@@ -44,6 +38,15 @@
           "enableBackgroundPlayback": true,
           "recordAudioAndroid": true
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F8FC"
+        }
       ]
     ],
     "extra": {
@@ -51,9 +54,6 @@
         "portalUrl": "https://www.radio.studiosatweb.com.br",
         "playerUrl": "https://radio.studiosatweb.com.br",
         "contentApiUrl": "https://www.radio.studiosatweb.com.br/api/content"
-      },
-      "eas": {
-        "projectId": "REPLACE_AFTER_EAS_INIT"
       }
     }
   }
