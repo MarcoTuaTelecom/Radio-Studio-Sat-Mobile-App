@@ -16,19 +16,41 @@ ok(){ printf '\nPASS  %s\n' "$*"; }
 fail(){ printf '\nFAIL  %s\n' "$*" >&2; exit 1; }
 
 [[ $EUID -eq 0 ]] || fail "execute como root"
-for cmd in bash python3 curl nginx git; do command -v "$cmd" >/dev/null 2>&1 || fail "comando ausente: $cmd"; done
+for cmd in bash python3 curl nginx git sha256sum find mktemp; do command -v "$cmd" >/dev/null 2>&1 || fail "comando ausente: $cmd"; done
 [[ -d "$REPO/.git" ]] || fail "repositorio ausente"
 [[ -f "$PWA_SRC/index.html" ]] || fail "PWA ausente"
 [[ -f "$PWA_SRC/manifest.webmanifest" ]] || fail "manifest PWA ausente"
 [[ -f "$PORTAL_ROOT/index.html" ]] || fail "portal root invalido"
 
-# O Grok já deixou /app/ e o APK funcionando. Aqui preservamos essa configuração.
+hls_check(){
+  local id="$1" url h b c code cors
+  url="https://$STREAM_DOMAIN/$id/index.m3u8"
+  h="$(mktemp)"; b="$(mktemp)"; c="$(mktemp)"
+  code="$(curl -ksS -L --max-redirs 6 -D "$h" -o "$b" -w '%{http_code}' \
+    -H "Origin: $PUBLIC_HOST" -c "$c" -b "$c" "$url" || true)"
+  cors="$(python3 - "$h" <<'PY'
+import re,sys
+raw=open(sys.argv[1],encoding='iso-8859-1').read().replace('\r\n','\n')
+blocks=[b for b in re.split(r'\n\n+',raw) if b.lstrip().startswith('HTTP/')]
+last=blocks[-1] if blocks else ''
+m=re.search(r'(?im)^access-control-allow-origin:\s*(.+?)\s*$',last)
+print(m.group(1).strip() if m else '')
+PY
+)"
+  printf 'HLS_CHECK id=%s http=%s cors=%s\n' "$id" "$code" "${cors:-MISSING}"
+  if [[ "$code" == "200" ]] && grep -q '#EXTM3U' "$b" && { [[ "$cors" == "$PUBLIC_HOST" ]] || [[ "$cors" == "*" ]]; }; then
+    rm -f "$h" "$b" "$c"
+    return 0
+  fi
+  rm -f "$h" "$b" "$c"
+  return 1
+}
+
 printf '\n===== 0. NGINX EXISTENTE =====\n'
 nginx -t
 ok "nginx atual valido; nenhuma location sera reescrita"
 
-# A interface universal pode ser 1.1.0 antes do novo APK existir. Nunca renomeamos
-# um APK antigo como se fosse uma versão nova.
+# Seleciona o APK real mais recente sem renomear uma versao antiga como nova.
 APK_SOURCE="${APK_SOURCE:-}"
 APK_VERSION=""
 if [[ -n "$APK_SOURCE" ]]; then
@@ -36,8 +58,10 @@ if [[ -n "$APK_SOURCE" ]]; then
 else
   exact="/root/builds/RadioStudioSat-v${VERSION}.apk"
   exact_public="$PORTAL_ROOT/downloads/apps/RadioStudioSat-v${VERSION}.apk"
-  if [[ -f "$exact" ]]; then APK_SOURCE="$exact"; APK_VERSION="$VERSION"
-  elif [[ -f "$exact_public" ]]; then APK_SOURCE="$exact_public"; APK_VERSION="$VERSION"
+  if [[ -f "$exact" ]]; then
+    APK_SOURCE="$exact"; APK_VERSION="$VERSION"
+  elif [[ -f "$exact_public" ]]; then
+    APK_SOURCE="$exact_public"; APK_VERSION="$VERSION"
   else
     latest_versioned="$(find "$PORTAL_ROOT/downloads/apps" -maxdepth 1 -type f -name 'RadioStudioSat-v*.apk' 2>/dev/null | sort -V | tail -1 || true)"
     [[ -n "$latest_versioned" ]] || fail "nenhum APK versionado existente encontrado"
@@ -50,13 +74,13 @@ if [[ -z "$APK_VERSION" ]]; then
   if [[ "$base" =~ ^RadioStudioSat-v([0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9._-]+)?)\.apk$ ]]; then
     APK_VERSION="${BASH_REMATCH[1]}"
   else
-    versioned_same_sha=""
     sha="$(sha256sum "$APK_SOURCE" | awk '{print $1}')"
+    same=""
     while IFS= read -r f; do
-      [[ "$(sha256sum "$f" | awk '{print $1}')" == "$sha" ]] && { versioned_same_sha="$f"; break; }
+      [[ "$(sha256sum "$f" | awk '{print $1}')" == "$sha" ]] && { same="$f"; break; }
     done < <(find "$PORTAL_ROOT/downloads/apps" -maxdepth 1 -type f -name 'RadioStudioSat-v*.apk' 2>/dev/null | sort -V -r)
-    [[ -n "$versioned_same_sha" ]] || fail "nao foi possivel determinar a versao real do APK"
-    base="$(basename "$versioned_same_sha")"
+    [[ -n "$same" ]] || fail "nao foi possivel determinar a versao real do APK"
+    base="$(basename "$same")"
     APK_VERSION="${base#RadioStudioSat-v}"; APK_VERSION="${APK_VERSION%.apk}"
   fi
 fi
@@ -95,23 +119,21 @@ PY
 ok "interface do modelo e PWA publicadas"
 
 printf '\n===== 3. HLS / CORS =====\n'
-HLS_URL="https://$STREAM_DOMAIN/radioprincipal/index.m3u8"
-HLS_HEADERS="$(curl -ksSI -H "Origin: $PUBLIC_HOST" "$HLS_URL" | tr -d '\r')"
-if ! grep -qi "^access-control-allow-origin: $PUBLIC_HOST" <<<"$HLS_HEADERS"; then
-  echo "CORS ainda ausente; aplicando somente a correcao segura do host HLS..."
-  [[ -f "$REPO/scripts/fix-hls-cors.sh" ]] || fail "fix-hls-cors.sh ausente"
+# O host de streaming faz um 302 de cookieCheck antes do manifesto. Isso e normal.
+# Validamos o GET final, seguindo redirect, e aceitamos CORS publico '*' ou origem exata.
+if ! hls_check radioprincipal; then
+  echo "HLS/CORS ainda nao passou; executando corretor seguro..."
   HOST="$STREAM_DOMAIN" ORIGIN="$PUBLIC_HOST" bash "$REPO/scripts/fix-hls-cors.sh"
+  hls_check radioprincipal || fail "HLS radioprincipal continua invalido apos ajuste"
 fi
-ok "CORS HLS pronto"
+ok "HLS/CORS funcional atraves do redirect cookieCheck"
 
 printf '\n===== 4. NGINX FINAL =====\n'
 nginx -t
 ok "nginx continua valido"
 
 printf '\n===== 5. VALIDACAO /app/ =====\n'
-APP_HEADERS="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/app/" | tr -d '\r')"
 APP_BODY="$(curl -ksS --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/app/")"
-printf '%s\n' "$APP_HEADERS" | head -20
 grep -q '<title>Instalar Radio Studio Sat</title>' <<<"$APP_BODY" || fail "/app/ nao entrega a central correta"
 grep -q 'iPhone / iPad' <<<"$APP_BODY" || fail "/app/ sem iPhone"
 grep -q 'Windows' <<<"$APP_BODY" || fail "/app/ sem Windows"
@@ -119,9 +141,7 @@ grep -q 'Android' <<<"$APP_BODY" || fail "/app/ sem Android"
 ok "/app/ central universal"
 
 printf '\n===== 6. VALIDACAO /listen/ MODELO APROVADO =====\n'
-PWA_HEADERS="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/listen/" | tr -d '\r')"
 PWA_BODY="$(curl -ksS --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/listen/")"
-printf '%s\n' "$PWA_HEADERS" | head -20
 for marker in \
   '<title>Radio Studio Sat</title>' \
   'A MÚSICA NOS CONECTA' \
@@ -157,11 +177,7 @@ ok "APK Android continua publicado (versao $APK_VERSION)"
 
 printf '\n===== 9. CINCO STREAMS =====\n'
 for id in radioprincipal radiopop radiorock radioclassicas radiocountry; do
-  url="https://$STREAM_DOMAIN/$id/index.m3u8"
-  body="$(curl -ksS --max-time 10 "$url" || true)"
-  grep -q '#EXTM3U' <<<"$body" || fail "HLS falhou: $id"
-  headers="$(curl -ksSI -H "Origin: $PUBLIC_HOST" "$url" | tr -d '\r')"
-  grep -qi "^access-control-allow-origin: $PUBLIC_HOST" <<<"$headers" || fail "CORS HLS ausente: $id"
+  hls_check "$id" || fail "HLS/CORS falhou: $id"
   echo "PASS  $id"
 done
 
@@ -182,6 +198,7 @@ printf 'ANDROID_APK=%s/downloads/apps/RadioStudioSat-latest.apk\n' "$PUBLIC_HOST
 printf 'WINDOWS=PWA\n'
 printf 'IPHONE=PWA_SAFARI\n'
 printf 'SMART_TV=WEB_APP\n'
+printf 'HLS_REDIRECT_COOKIECHECK=SUPPORTED\n'
 printf 'NGINX_ROUTES=PRESERVED_NOT_REWRITTEN\n'
 printf 'BACKUP=%s\n' "$BACKUP"
 printf '========================================\n'
