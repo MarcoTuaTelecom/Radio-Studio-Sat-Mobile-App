@@ -45,14 +45,15 @@ for f in scripts/deploy-universal-platforms.sh scripts/deploy-download-page.sh s
   bash -n "$f"
 done
 python3 -m py_compile scripts/generate-pwa-icons.py
+node scripts/validate-pwa.mjs
 npm install --no-audit --no-fund
 npx --yes expo-doctor
 npm run typecheck
-ok "Expo Doctor + TypeScript"
+ok "PWA + Expo Doctor + TypeScript"
 
 printf '\n===== D. DEPLOY SEM REESCREVER NGINX =====\n'
 VERSION="$VERSION" bash scripts/deploy-universal-platforms.sh
-ok "web/PWA do modelo publicado"
+ok "web/PWA da referencia publicado"
 
 printf '\n========================================\n'
 printf 'SYNC_AND_DEPLOY=PASS\n'
