@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Radio Studio Sat — instala/atualiza a página pública de download do app.
-# Não altera nginx.conf nem a homepage do portal. Cria /app/ dentro do portal root.
+# Radio Studio Sat — instala/atualiza a central pública de instalação.
 set -Eeuo pipefail
 IFS=$'\n\t'
 
@@ -53,7 +52,7 @@ rollback(){
 }
 trap rollback EXIT
 
-printf 'Radio Studio Sat — deploy da página de download\nUTC=%s\nPORTAL_ROOT=%s\nBACKUP=%s\n' "$TS" "$PORTAL_ROOT" "$BACKUP_ROOT"
+printf 'Radio Studio Sat — deploy da central de instalação\nUTC=%s\nPORTAL_ROOT=%s\nBACKUP=%s\n' "$TS" "$PORTAL_ROOT" "$BACKUP_ROOT"
 
 if [[ -d "$APP_DIR" ]]; then cp -a "$APP_DIR" "$BACKUP_ROOT/app.previous"; fi
 if [[ -f "$APK_LATEST" ]]; then cp -a "$APK_LATEST" "$BACKUP_ROOT/RadioStudioSat-latest.apk.previous"; fi
@@ -92,8 +91,8 @@ out.write_text(src,encoding='utf-8')
 PY
 chmod 0644 "$APP_DIR/index.html"
 
-grep -q '<title>Baixar Radio Studio Sat</title>' "$APP_DIR/index.html"
-grep -q 'Cinco rádios' "$APP_DIR/index.html"
+grep -q '<title>Instalar Radio Studio Sat</title>' "$APP_DIR/index.html"
+grep -q 'CENTRAL OFICIAL DE INSTALAÇÃO' "$APP_DIR/index.html"
 ! grep -q '@@[A-Z_][A-Z_]*@@' "$APP_DIR/index.html" || { echo 'FATAL=UNRENDERED_TEMPLATE_TOKEN' >&2; exit 65; }
 sha256sum "$APP_DIR/index.html" | tee "$BACKUP_ROOT/page.sha256"
 if [[ -n "$APK_SOURCE" ]]; then sha256sum "$APK_DEST" "$APK_LATEST" | tee "$BACKUP_ROOT/apk.sha256"; fi
@@ -103,6 +102,5 @@ if command -v nginx >/dev/null 2>&1; then nginx -t; fi
 trap - EXIT
 MUTATED=0
 printf '\nRESULT=PASS\nPAGE=%s/%s/\n' "$PUBLIC_HOST" "$APP_PATH"
-if [[ -n "$APK_SOURCE" ]]; then printf 'APK=%s/%s/%s\n' "$PUBLIC_HOST" "$DOWNLOAD_DIR" "$APK_NAME"; else echo 'APK=PENDING (execute novamente passando o caminho do APK)'; fi
+if [[ -n "$APK_SOURCE" ]]; then printf 'APK=%s/%s/%s\nLATEST_APK=%s/%s/RadioStudioSat-latest.apk\n' "$PUBLIC_HOST" "$DOWNLOAD_DIR" "$APK_NAME" "$PUBLIC_HOST" "$DOWNLOAD_DIR"; else echo 'APK=PENDING'; fi
 printf 'BACKUP=%s\n' "$BACKUP_ROOT"
-printf 'ROLLBACK=rm -rf %q && cp -a %q %q\n' "$APP_DIR" "$BACKUP_ROOT/app.previous" "$APP_DIR"
