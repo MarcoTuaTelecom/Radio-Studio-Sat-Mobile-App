@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild --clean",
-    "doctor": "npx expo-doctor",
+    "doctor": "npx --yes expo-doctor",
     "typecheck": "tsc --noEmit",
     "validate": "npm run doctor && npm run typecheck",
     "build:preview": "bash scripts/build-release.sh preview",
