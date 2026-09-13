@@ -16,7 +16,7 @@ fail(){ printf '\nFAIL  %s\n' "$*" >&2; exit 1; }
 [[ -d "$REPO" ]] || fail "repositorio ausente: $REPO"
 cd "$REPO"
 
-for cmd in node npm npx python3 curl git; do
+for cmd in node npm npx python3 curl git sha256sum; do
   command -v "$cmd" >/dev/null 2>&1 || fail "comando ausente: $cmd"
 done
 
@@ -33,7 +33,7 @@ npx expo install --fix
 ok "dependencias instaladas e alinhadas"
 
 printf '\n===== 2. EXPO DOCTOR =====\n'
-npx expo-doctor
+npx --yes expo-doctor
 ok "expo-doctor"
 
 printf '\n===== 3. TYPESCRIPT =====\n'
@@ -76,7 +76,7 @@ fi
 ok "EAS projectId: $PROJECT_ID"
 
 printf '\n===== 6. VALIDACAO FINAL ANTES DO BUILD =====\n'
-npx expo-doctor
+npx --yes expo-doctor
 npm run typecheck
 ok "fonte pronto para build"
 
