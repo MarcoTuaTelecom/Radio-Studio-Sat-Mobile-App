@@ -21,6 +21,9 @@ for cmd in bash python3 curl nginx git sha256sum find mktemp; do command -v "$cm
 [[ -f "$PWA_SRC/index.html" ]] || fail "PWA ausente"
 [[ -f "$PWA_SRC/manifest.webmanifest" ]] || fail "manifest PWA ausente"
 [[ -f "$PORTAL_ROOT/index.html" ]] || fail "portal root invalido"
+for art in hero-studiosat.svg promo-sunset.svg station-principal.svg station-pop.svg station-rock.svg station-classicas.svg station-country.svg; do
+  [[ -f "$PWA_SRC/art/$art" ]] || fail "arte da interface ausente: $art"
+done
 
 hls_check(){
   local id="$1" url h b c code cors
@@ -50,7 +53,6 @@ printf '\n===== 0. NGINX EXISTENTE =====\n'
 nginx -t
 ok "nginx atual valido; nenhuma location sera reescrita"
 
-# Seleciona o APK real mais recente sem renomear uma versao antiga como nova.
 APK_SOURCE="${APK_SOURCE:-}"
 APK_VERSION=""
 if [[ -n "$APK_SOURCE" ]]; then
@@ -116,11 +118,9 @@ sizes={x.get('sizes') for x in d.get('icons',[])}
 assert '192x192' in sizes and '512x512' in sizes
 print('MANIFEST_JSON=PASS')
 PY
-ok "interface do modelo e PWA publicadas"
+ok "interface compacta de referencia e PWA publicadas"
 
 printf '\n===== 3. HLS / CORS =====\n'
-# O host de streaming faz um 302 de cookieCheck antes do manifesto. Isso e normal.
-# Validamos o GET final, seguindo redirect, e aceitamos CORS publico '*' ou origem exata.
 if ! hls_check radioprincipal; then
   echo "HLS/CORS ainda nao passou; executando corretor seguro..."
   HOST="$STREAM_DOMAIN" ORIGIN="$PUBLIC_HOST" bash "$REPO/scripts/fix-hls-cors.sh"
@@ -140,22 +140,26 @@ grep -q 'Windows' <<<"$APP_BODY" || fail "/app/ sem Windows"
 grep -q 'Android' <<<"$APP_BODY" || fail "/app/ sem Android"
 ok "/app/ central universal"
 
-printf '\n===== 6. VALIDACAO /listen/ MODELO APROVADO =====\n'
+printf '\n===== 6. VALIDACAO /listen/ REFERENCIA COMPACTA =====\n'
 PWA_BODY="$(curl -ksS --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/listen/")"
 for marker in \
   '<title>Radio Studio Sat</title>' \
   'A MÚSICA NOS CONECTA' \
   'TRADUÇÃO' \
   'Nossas Emissoras' \
-  'Conteúdo, notícia e publicidade' \
+  'Música boa em todos os momentos' \
+  'hero-studiosat.svg' \
+  'promo-sunset.svg' \
+  'station-principal.svg' \
   'beforeinstallprompt' \
   'createAnalyser' \
-  'mediaSession'; do
+  'mediaSession' \
+  'for(let i=0;i<30;i++)'; do
   grep -q "$marker" <<<"$PWA_BODY" || fail "/listen/ sem marcador: $marker"
 done
-ok "/listen/ corresponde ao novo app e tem player/VU/PWA/MediaSession"
+ok "/listen/ corresponde a referencia compacta e tem player/VU/PWA/MediaSession"
 
-printf '\n===== 7. PWA =====\n'
+printf '\n===== 7. PWA + ARTES =====\n'
 MANIFEST_HEADERS="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/listen/manifest.webmanifest" | tr -d '\r')"
 MANIFEST_CT="$(awk 'BEGIN{IGNORECASE=1}/^content-type:/{print $2}' <<<"$MANIFEST_HEADERS" | tail -1)"
 [[ "$MANIFEST_CT" == application/manifest+json* || "$MANIFEST_CT" == application/json* ]] || fail "manifest content-type invalido: $MANIFEST_CT"
@@ -167,7 +171,12 @@ for n in 192 512; do
   grep -qiE '^HTTP/(2|1\.1) 200' <<<"$H" || fail "icone $n HTTP invalido"
   grep -qi '^content-type: image/png' <<<"$H" || fail "icone $n invalido"
 done
-ok "PWA instalavel"
+for art in hero-studiosat.svg promo-sunset.svg station-principal.svg station-pop.svg station-rock.svg station-classicas.svg station-country.svg; do
+  H="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/listen/art/$art" | tr -d '\r')"
+  grep -qiE '^HTTP/(2|1\.1) 200' <<<"$H" || fail "arte $art HTTP invalido"
+  grep -qi '^content-type: image/svg+xml' <<<"$H" || fail "arte $art content-type invalido"
+done
+ok "PWA instalavel e artes locais publicadas"
 
 printf '\n===== 8. APK EXISTENTE =====\n'
 APK_HEADERS="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/downloads/apps/RadioStudioSat-latest.apk" | tr -d '\r')"
@@ -185,11 +194,11 @@ printf '\n===== 10. PUBLICO =====\n'
 PUB_APP="$(curl -ksS --max-time 15 "$PUBLIC_HOST/app/")"
 PUB_PWA="$(curl -ksS --max-time 15 "$PUBLIC_HOST/listen/")"
 grep -q '<title>Instalar Radio Studio Sat</title>' <<<"$PUB_APP" || fail "publico /app/ incorreto"
-grep -q 'A MÚSICA NOS CONECTA' <<<"$PUB_PWA" || fail "publico /listen/ ainda nao recebeu o novo modelo"
+grep -q 'hero-studiosat.svg' <<<"$PUB_PWA" || fail "publico /listen/ ainda nao recebeu a interface reconstruida"
 ok "publicacao externa"
 
 printf '\n========================================\n'
-printf 'STUDIOSAT_MODEL_UI=PASS\n'
+printf 'STUDIOSAT_REFERENCE_UI=PASS\n'
 printf 'UI_VERSION=%s\n' "$VERSION"
 printf 'APK_VERSION=%s\n' "$APK_VERSION"
 printf 'INSTALLER=%s/app/\n' "$PUBLIC_HOST"
