@@ -36,6 +36,11 @@ find "$PWA_DEST" -type d -exec chmod 0755 {} +
 find "$PWA_DEST" -type f -exec chmod 0644 {} +
 ok "web app publicado"
 
+printf '\n===== 2B. ROTAS EXPLICITAS NGINX =====\n'
+[[ -f "$REPO/scripts/fix-universal-routing.sh" ]] || fail "fix-universal-routing.sh ausente"
+PORTAL_ROOT="$PORTAL_ROOT" bash "$REPO/scripts/fix-universal-routing.sh"
+ok "rotas /app/ e /listen/"
+
 printf '\n===== 3. NGINX =====\n'
 nginx -t
 systemctl reload nginx
@@ -52,8 +57,12 @@ grep -q 'Studio Sat Principal' <<<"$PWA_BODY" || fail "/listen/ nao e o web app"
 ok "/listen/ web app"
 
 MANIFEST_CT="$(curl -ksSI --resolve www.radio.studiosatweb.com.br:443:127.0.0.1 "$PUBLIC_HOST/listen/manifest.webmanifest" | tr -d '\r' | awk 'BEGIN{IGNORECASE=1}/^content-type:/{print $2}' | tail -1)"
-[[ -n "$MANIFEST_CT" ]] || fail "manifest sem content-type"
+[[ "$MANIFEST_CT" == application/manifest+json* || "$MANIFEST_CT" == application/json* ]] || fail "manifest content-type invalido: $MANIFEST_CT"
 ok "manifest PWA"
+
+SW_CT="$(curl -ksSI --resolve www.radio.studiosatweb.com.br:443:127.0.0.1 "$PUBLIC_HOST/listen/sw.js" | tr -d '\r' | awk 'BEGIN{IGNORECASE=1}/^content-type:/{print $2}' | tail -1)"
+[[ "$SW_CT" == application/javascript* || "$SW_CT" == text/javascript* ]] || fail "service worker content-type invalido: $SW_CT"
+ok "service worker PWA"
 
 APK_HEADERS="$(curl -ksSI --resolve www.radio.studiosatweb.com.br:443:127.0.0.1 "$PUBLIC_HOST/downloads/apps/RadioStudioSat-latest.apk")"
 grep -qi '^content-type: application/vnd.android.package-archive' <<<"$APK_HEADERS" || fail "APK latest nao esta sendo entregue corretamente"
