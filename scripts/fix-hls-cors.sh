@@ -74,8 +74,10 @@ systemctl reload nginx
 sleep 1
 
 URL="https://$HOST/radioprincipal/index.m3u8"
-HEADERS="$(curl -ksSI -H "Origin: $ORIGIN" --resolve "$HOST:443:127.0.0.1" "$URL")"
-printf '%s\n' "$HEADERS"
-grep -qi '^HTTP/2 200\|^HTTP/1\.1 200' <<<"$HEADERS" || { echo "FAIL HLS HTTP"; exit 1; }
-grep -qi "^access-control-allow-origin: $ORIGIN" <<<"$HEADERS" || { echo "FAIL HLS CORS ausente"; exit 1; }
+TMPH="$(mktemp)"; TMPB="$(mktemp)"; trap 'rm -f "$TMPH" "$TMPB"' EXIT
+curl -ksS -D "$TMPH" -o "$TMPB" -H "Origin: $ORIGIN" --resolve "$HOST:443:127.0.0.1" "$URL"
+cat "$TMPH"
+grep -qi '^HTTP/2 200\|^HTTP/1\.1 200' "$TMPH" || { echo "FAIL HLS HTTP"; exit 1; }
+grep -qi "^access-control-allow-origin: $ORIGIN" "$TMPH" || { echo "FAIL HLS CORS ausente"; exit 1; }
+grep -q '#EXTM3U' "$TMPB" || { echo "FAIL HLS manifest invalido"; exit 1; }
 echo "HLS_CORS=PASS"
