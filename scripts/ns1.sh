@@ -5,7 +5,8 @@ VERSION="${VERSION:-1.0.0}"
 REPO="/root/Radio-Studio-Sat-Mobile-App"
 KEY="/root/.ssh/id_ed25519_studiosat_mobile"
 PORTAL_ROOT="/var/www/studiosat-radio-portal"
-PORTAL="https://www.radio.studiosatweb.com.br"
+PORTAL_HOST="www.radio.studiosatweb.com.br"
+PORTAL="https://$PORTAL_HOST"
 PLAYER="https://radio.studiosatweb.com.br"
 REPORT="/tmp/STUDIOSAT-MOBILE-NS1-$(date -u +%Y%m%dT%H%M%SZ).log"
 APK_SOURCE="${APK_SOURCE:-}"
@@ -45,7 +46,7 @@ git checkout -q main
 git pull --ff-only origin main
 ok "git $(git rev-parse --short HEAD)"
 
-for f in App.tsx app.json package.json eas.json tsconfig.json src/config/stations.ts src/services/api.ts src/components/MediaCarousel.tsx src/components/StationSelector.tsx src/components/VuMeter.tsx scripts/deploy-download-page.sh web/download/index.html; do
+for f in App.tsx app.json package.json eas.json tsconfig.json src/config/stations.ts src/services/api.ts src/components/MediaCarousel.tsx src/components/StationSelector.tsx src/components/VuMeter.tsx scripts/deploy-download-page.sh scripts/ns1.sh web/download/index.html; do
   [[ -f "$f" ]] || die "arquivo ausente: $f"
 done
 bash -n scripts/deploy-download-page.sh
@@ -91,11 +92,7 @@ x=json.load(open('/tmp/studiosat-content.json'))
 ids={s.get('id') for s in x.get('stations',[])}
 assert ids=={'radioprincipal','radiopop','radiorock','radioclassicas','radiocountry'}, ids
 PY
-  then
-    ok "CMS content 5 emissoras"
-  else
-    warn "CMS content respondeu 200 mas JSON nao corresponde as 5 emissoras"
-  fi
+  then ok "CMS content publico 5 emissoras"; else warn "CMS content publico JSON inesperado"; fi
 elif [[ -f /var/lib/studiosat-portal/content.json ]] && python3 - <<'PY'
 import json
 x=json.load(open('/var/lib/studiosat-portal/content.json'))
@@ -105,7 +102,7 @@ PY
 then
   warn "CMS content publico HTTP=$CC; arquivo local possui as 5 emissoras"
 else
-  warn "CMS content publico HTTP=$CC; nao bloqueia a pagina de download"
+  warn "CMS content indisponivel HTTP=$CC"
 fi
 
 for s in radioprincipal radiopop radiorock radioclassicas radiocountry; do
@@ -120,10 +117,24 @@ ENVV=("VERSION=$VERSION" "PORTAL_ROOT=$PORTAL_ROOT" "PUBLIC_HOST=$PORTAL")
 env "${ENVV[@]}" bash scripts/deploy-download-page.sh
 
 [[ "$(sha256sum "$PORTAL_ROOT/index.html" | awk '{print $1}')" == "$HOME_SHA" ]] || die "home original foi alterada"
-[[ -f "$PORTAL_ROOT/app/index.html" ]] || die "pagina /app/ nao foi criada"
-AC="$(curl -ksSL --connect-timeout 5 --max-time 15 -o /tmp/studiosat-app.html -w '%{http_code}' "$PORTAL/app/?v=$(date +%s)" || true)"
-[[ "$AC" == 200 ]] || die "/app/ HTTP=$AC"
-grep -q 'Baixar Radio Studio Sat' /tmp/studiosat-app.html || die "conteudo /app/ invalido"
+[[ -f "$PORTAL_ROOT/app/index.html" ]] || die "pagina /app/index.html nao foi criada"
+grep -q '<title>Baixar Radio Studio Sat</title>' "$PORTAL_ROOT/app/index.html" || die "arquivo local /app/index.html invalido"
+ok "arquivo local /app/index.html"
+
+STAMP="$(date +%s)"
+LOCAL_CODE="$(curl -ksS --resolve "$PORTAL_HOST:443:127.0.0.1" --connect-timeout 4 --max-time 15 -o /tmp/studiosat-app-origin.html -w '%{http_code}' "$PORTAL/app/index.html?v=$STAMP" || true)"
+[[ "$LOCAL_CODE" == 200 ]] || die "origem /app/index.html HTTP=$LOCAL_CODE"
+grep -q '<title>Baixar Radio Studio Sat</title>' /tmp/studiosat-app-origin.html || die "origem /app/index.html conteudo invalido"
+ok "origem /app/index.html HTTP 200"
+
+PUBLIC_CODE="$(curl -ksSL --connect-timeout 5 --max-time 20 -o /tmp/studiosat-app-public.html -w '%{http_code}' "$PORTAL/app/index.html?v=$STAMP" || true)"
+[[ "$PUBLIC_CODE" == 200 ]] || die "publico /app/index.html HTTP=$PUBLIC_CODE"
+grep -q '<title>Baixar Radio Studio Sat</title>' /tmp/studiosat-app-public.html || die "publico /app/index.html conteudo invalido"
+ok "publico /app/index.html HTTP 200"
+
+DIR_CODE="$(curl -ksSL --connect-timeout 5 --max-time 15 -o /tmp/studiosat-app-dir.html -w '%{http_code}' "$PORTAL/app/?v=$STAMP" || true)"
+[[ "$DIR_CODE" == 200 ]] && ok "/app/ HTTP 200" || warn "/app/ HTTP=$DIR_CODE; /app/index.html esta valido"
+
 nginx -t
 ok "pagina /app/ publicada"
 
@@ -136,5 +147,6 @@ echo
 echo '========================================'
 echo 'STUDIOSAT_MOBILE_NS1=PASS'
 echo "APP=$PORTAL/app/"
+echo "APP_EXACT=$PORTAL/app/index.html"
 echo "REPORT=$REPORT"
 echo '========================================'
