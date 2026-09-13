@@ -20,10 +20,8 @@ for cmd in bash python3 curl nginx git sha256sum find mktemp; do command -v "$cm
 [[ -d "$REPO/.git" ]] || fail "repositorio ausente"
 [[ -f "$PWA_SRC/index.html" ]] || fail "PWA ausente"
 [[ -f "$PWA_SRC/manifest.webmanifest" ]] || fail "manifest PWA ausente"
+[[ -f "$PWA_SRC/sw.js" ]] || fail "service worker ausente"
 [[ -f "$PORTAL_ROOT/index.html" ]] || fail "portal root invalido"
-for art in hero-studiosat.svg promo-sunset.svg station-principal.svg station-pop.svg station-rock.svg station-classicas.svg station-country.svg; do
-  [[ -f "$PWA_SRC/art/$art" ]] || fail "arte da interface ausente: $art"
-done
 
 hls_check(){
   local id="$1" url h b c code cors
@@ -42,11 +40,9 @@ PY
 )"
   printf 'HLS_CHECK id=%s http=%s cors=%s\n' "$id" "$code" "${cors:-MISSING}"
   if [[ "$code" == "200" ]] && grep -q '#EXTM3U' "$b" && { [[ "$cors" == "$PUBLIC_HOST" ]] || [[ "$cors" == "*" ]]; }; then
-    rm -f "$h" "$b" "$c"
-    return 0
+    rm -f "$h" "$b" "$c"; return 0
   fi
-  rm -f "$h" "$b" "$c"
-  return 1
+  rm -f "$h" "$b" "$c"; return 1
 }
 
 printf '\n===== 0. NGINX EXISTENTE =====\n'
@@ -60,44 +56,30 @@ if [[ -n "$APK_SOURCE" ]]; then
 else
   exact="/root/builds/RadioStudioSat-v${VERSION}.apk"
   exact_public="$PORTAL_ROOT/downloads/apps/RadioStudioSat-v${VERSION}.apk"
-  if [[ -f "$exact" ]]; then
-    APK_SOURCE="$exact"; APK_VERSION="$VERSION"
-  elif [[ -f "$exact_public" ]]; then
-    APK_SOURCE="$exact_public"; APK_VERSION="$VERSION"
+  if [[ -f "$exact" ]]; then APK_SOURCE="$exact"; APK_VERSION="$VERSION"
+  elif [[ -f "$exact_public" ]]; then APK_SOURCE="$exact_public"; APK_VERSION="$VERSION"
   else
     latest_versioned="$(find "$PORTAL_ROOT/downloads/apps" -maxdepth 1 -type f -name 'RadioStudioSat-v*.apk' 2>/dev/null | sort -V | tail -1 || true)"
     [[ -n "$latest_versioned" ]] || fail "nenhum APK versionado existente encontrado"
     APK_SOURCE="$latest_versioned"
   fi
 fi
-
 if [[ -z "$APK_VERSION" ]]; then
   base="$(basename "$APK_SOURCE")"
-  if [[ "$base" =~ ^RadioStudioSat-v([0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9._-]+)?)\.apk$ ]]; then
-    APK_VERSION="${BASH_REMATCH[1]}"
-  else
-    sha="$(sha256sum "$APK_SOURCE" | awk '{print $1}')"
-    same=""
-    while IFS= read -r f; do
-      [[ "$(sha256sum "$f" | awk '{print $1}')" == "$sha" ]] && { same="$f"; break; }
-    done < <(find "$PORTAL_ROOT/downloads/apps" -maxdepth 1 -type f -name 'RadioStudioSat-v*.apk' 2>/dev/null | sort -V -r)
-    [[ -n "$same" ]] || fail "nao foi possivel determinar a versao real do APK"
-    base="$(basename "$same")"
-    APK_VERSION="${base#RadioStudioSat-v}"; APK_VERSION="${APK_VERSION%.apk}"
+  if [[ "$base" =~ ^RadioStudioSat-v([0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9._-]+)?)\.apk$ ]]; then APK_VERSION="${BASH_REMATCH[1]}"
+  else fail "nao foi possivel determinar a versao real do APK"
   fi
 fi
 
 mkdir -p "$BACKUP"
 [[ -d "$PWA_DEST" ]] && cp -a "$PWA_DEST" "$BACKUP/listen.previous"
 [[ -d "$PORTAL_ROOT/app" ]] && cp -a "$PORTAL_ROOT/app" "$BACKUP/app.previous"
-
 echo "UI_VERSION=$VERSION"
 echo "APK_SOURCE=$APK_SOURCE"
 echo "APK_VERSION=$APK_VERSION"
 
 printf '\n===== 1. CENTRAL /app/ =====\n'
-VERSION="$APK_VERSION" APK_SOURCE="$APK_SOURCE" PORTAL_ROOT="$PORTAL_ROOT" PUBLIC_HOST="$PUBLIC_HOST" \
-  bash "$REPO/scripts/deploy-download-page.sh"
+VERSION="$APK_VERSION" APK_SOURCE="$APK_SOURCE" PORTAL_ROOT="$PORTAL_ROOT" PUBLIC_HOST="$PUBLIC_HOST" bash "$REPO/scripts/deploy-download-page.sh"
 ok "central de instalacao publicada sem falsificar versao do APK"
 
 printf '\n===== 2. APP UNIVERSAL /listen/ =====\n'
@@ -109,8 +91,7 @@ find "$PWA_DEST" -type d -exec chmod 0755 {} +
 find "$PWA_DEST" -type f -exec chmod 0644 {} +
 python3 - "$PWA_DEST/manifest.webmanifest" <<'PY'
 import json,sys
-p=sys.argv[1]
-d=json.load(open(p,encoding='utf-8'))
+p=sys.argv[1]; d=json.load(open(p,encoding='utf-8'))
 assert d['start_url']=='/listen/'
 assert d['scope']=='/listen/'
 assert d['display'] in ('standalone','fullscreen','minimal-ui')
@@ -118,7 +99,7 @@ sizes={x.get('sizes') for x in d.get('icons',[])}
 assert '192x192' in sizes and '512x512' in sizes
 print('MANIFEST_JSON=PASS')
 PY
-ok "interface compacta de referencia e PWA publicadas"
+ok "interface reconstruida da referencia e PWA publicadas"
 
 printf '\n===== 3. HLS / CORS =====\n'
 if ! hls_check radioprincipal; then
@@ -140,26 +121,26 @@ grep -q 'Windows' <<<"$APP_BODY" || fail "/app/ sem Windows"
 grep -q 'Android' <<<"$APP_BODY" || fail "/app/ sem Android"
 ok "/app/ central universal"
 
-printf '\n===== 6. VALIDACAO /listen/ REFERENCIA COMPACTA =====\n'
+printf '\n===== 6. VALIDACAO /listen/ REFERENCIA REAL =====\n'
 PWA_BODY="$(curl -ksS --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/listen/")"
 for marker in \
   '<title>Radio Studio Sat</title>' \
   'A MÚSICA NOS CONECTA' \
+  'AO VIVO' \
   'TRADUÇÃO' \
   'Nossas Emissoras' \
   'Música boa em todos os momentos' \
-  'hero-studiosat.svg' \
-  'promo-sunset.svg' \
-  'station-principal.svg' \
-  'beforeinstallprompt' \
+  'photo-1705232497556-251915cc8505' \
+  'photo-1688760117592-c730ff312b75' \
   'createAnalyser' \
   'mediaSession' \
-  'for(let i=0;i<30;i++)'; do
+  'for(let i=0;i<30;i++)' \
+  'position:sticky'; do
   grep -q "$marker" <<<"$PWA_BODY" || fail "/listen/ sem marcador: $marker"
 done
-ok "/listen/ corresponde a referencia compacta e tem player/VU/PWA/MediaSession"
+ok "/listen/ corresponde ao modelo aprovado e tem player/VU/MediaSession"
 
-printf '\n===== 7. PWA + ARTES =====\n'
+printf '\n===== 7. PWA =====\n'
 MANIFEST_HEADERS="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/listen/manifest.webmanifest" | tr -d '\r')"
 MANIFEST_CT="$(awk 'BEGIN{IGNORECASE=1}/^content-type:/{print $2}' <<<"$MANIFEST_HEADERS" | tail -1)"
 [[ "$MANIFEST_CT" == application/manifest+json* || "$MANIFEST_CT" == application/json* ]] || fail "manifest content-type invalido: $MANIFEST_CT"
@@ -171,12 +152,7 @@ for n in 192 512; do
   grep -qiE '^HTTP/(2|1\.1) 200' <<<"$H" || fail "icone $n HTTP invalido"
   grep -qi '^content-type: image/png' <<<"$H" || fail "icone $n invalido"
 done
-for art in hero-studiosat.svg promo-sunset.svg station-principal.svg station-pop.svg station-rock.svg station-classicas.svg station-country.svg; do
-  H="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/listen/art/$art" | tr -d '\r')"
-  grep -qiE '^HTTP/(2|1\.1) 200' <<<"$H" || fail "arte $art HTTP invalido"
-  grep -qi '^content-type: image/svg+xml' <<<"$H" || fail "arte $art content-type invalido"
-done
-ok "PWA instalavel e artes locais publicadas"
+ok "PWA instalavel"
 
 printf '\n===== 8. APK EXISTENTE =====\n'
 APK_HEADERS="$(curl -ksSI --resolve "$PUBLIC_DOMAIN:443:127.0.0.1" "$PUBLIC_HOST/downloads/apps/RadioStudioSat-latest.apk" | tr -d '\r')"
@@ -185,16 +161,13 @@ grep -qi '^content-type: application/vnd.android.package-archive' <<<"$APK_HEADE
 ok "APK Android continua publicado (versao $APK_VERSION)"
 
 printf '\n===== 9. CINCO STREAMS =====\n'
-for id in radioprincipal radiopop radiorock radioclassicas radiocountry; do
-  hls_check "$id" || fail "HLS/CORS falhou: $id"
-  echo "PASS  $id"
-done
+for id in radioprincipal radiopop radiorock radioclassicas radiocountry; do hls_check "$id" || fail "HLS/CORS falhou: $id"; echo "PASS  $id"; done
 
 printf '\n===== 10. PUBLICO =====\n'
 PUB_APP="$(curl -ksS --max-time 15 "$PUBLIC_HOST/app/")"
 PUB_PWA="$(curl -ksS --max-time 15 "$PUBLIC_HOST/listen/")"
 grep -q '<title>Instalar Radio Studio Sat</title>' <<<"$PUB_APP" || fail "publico /app/ incorreto"
-grep -q 'hero-studiosat.svg' <<<"$PUB_PWA" || fail "publico /listen/ ainda nao recebeu a interface reconstruida"
+grep -q 'photo-1705232497556-251915cc8505' <<<"$PUB_PWA" || fail "publico /listen/ ainda nao recebeu a interface reconstruida"
 ok "publicacao externa"
 
 printf '\n========================================\n'
