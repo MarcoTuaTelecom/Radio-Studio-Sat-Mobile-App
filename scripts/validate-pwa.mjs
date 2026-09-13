@@ -12,8 +12,8 @@ const required = [
   'TRADUÇÃO',
   'Nossas Emissoras',
   'Música boa em todos os momentos',
-  'images.unsplash.com/photo-1705232497556-251915cc8505',
-  'images.unsplash.com/photo-1688760117592-c730ff312b75',
+  'data:image/jpeg;base64,',
+  'stationImgs',
   'createAnalyser',
   'mediaSession',
   'for(let i=0;i<30;i++)',
@@ -23,6 +23,9 @@ const required = [
 for (const marker of required) {
   if (!html.includes(marker)) throw new Error(`PWA marker ausente: ${marker}`);
 }
+
+const embeddedJpegs = [...html.matchAll(/data:image\/jpeg;base64,([A-Za-z0-9+/=]+)/g)];
+if (embeddedJpegs.length < 8) throw new Error(`Esperava ao menos 8 JPEGs embutidos; encontrei ${embeddedJpegs.length}`);
 
 const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
 if (!inlineScripts.length) throw new Error('Nenhum JavaScript inline encontrado no PWA');
@@ -47,4 +50,5 @@ for (const station of stationIds) {
 console.log('PWA_HTML_JS=PASS');
 console.log(`INLINE_SCRIPTS=${inlineScripts.length}`);
 console.log(`HTML_IDS=${ids.length}`);
+console.log(`EMBEDDED_JPEGS=${embeddedJpegs.length}`);
 console.log(`STATIONS=${stationIds.length}`);
