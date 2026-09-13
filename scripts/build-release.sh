@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 PROFILE="${1:-preview}"
 REPO="${REPO:-/root/Radio-Studio-Sat-Mobile-App}"
-VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION:-1.1.0}"
 BUILD_DIR="${BUILD_DIR:-/root/builds}"
 PORTAL_ROOT="${PORTAL_ROOT:-/var/www/studiosat-radio-portal}"
 PUBLIC_HOST="${PUBLIC_HOST:-https://www.radio.studiosatweb.com.br}"
