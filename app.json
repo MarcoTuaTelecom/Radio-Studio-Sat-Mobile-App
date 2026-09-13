@@ -9,7 +9,7 @@
     "scheme": "studiosat",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "br.com.studiosatweb.radio",
       "infoPlist": {
         "UIBackgroundModes": ["audio"]
@@ -19,7 +19,7 @@
       "package": "br.com.studiosatweb.radio",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F6F8FC"
+        "backgroundColor": "#F7F9FF"
       },
       "permissions": [
         "INTERNET",
@@ -46,7 +46,7 @@
           "image": "./assets/splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#F6F8FC"
+          "backgroundColor": "#F7F9FF"
         }
       ]
     ],
