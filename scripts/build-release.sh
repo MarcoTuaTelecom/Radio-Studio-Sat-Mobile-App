@@ -42,8 +42,8 @@ ok "typecheck"
 
 printf '\n===== 4. AUTENTICACAO EXPO / EAS =====\n'
 if ! $EAS whoami >/tmp/studiosat-eas-whoami.txt 2>&1; then
-  echo "Login Expo necessario. O login sera feito diretamente no terminal."
-  $EAS login
+  echo "Login Expo necessario. Como este servidor e remoto/headless, o login sera feito no proprio terminal."
+  $EAS login --no-browser
 fi
 EAS_USER="$($EAS whoami | tail -n 1 | tr -d '\r')"
 ok "EAS autenticado: $EAS_USER"
