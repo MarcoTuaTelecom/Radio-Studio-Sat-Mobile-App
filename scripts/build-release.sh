@@ -93,7 +93,7 @@ ok "prebuild Android local"
 rm -rf android
 
 printf '\n===== 7. BUILD ANDROID APK (%s) =====\n' "$PROFILE"
-NODE_ENV=production $EAS build --platform android --profile "$PROFILE" --wait
+NODE_ENV=production $EAS build --platform android --profile "$PROFILE" --wait --non-interactive
 ok "EAS Build terminou"
 
 printf '\n===== 8. LOCALIZANDO APK =====\n'
