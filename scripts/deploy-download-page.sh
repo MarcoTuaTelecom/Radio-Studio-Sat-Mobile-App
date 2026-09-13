@@ -19,7 +19,7 @@ BACKUP_ROOT="${BACKUP_ROOT:-/var/backups/studiosat/app-download/$TS}"
 MUTATED=0
 
 need(){ command -v "$1" >/dev/null 2>&1 || { echo "FATAL=MISSING_TOOL:$1" >&2; exit 70; }; }
-for c in python3 install cp rm mkdir sha256sum date; do need "$c"; done
+for c in python3 install cp rm mkdir sha256sum date readlink; do need "$c"; done
 
 [[ ${EUID:-$(id -u)} -eq 0 ]] || { echo 'FATAL=RUN_AS_ROOT (use sudo)' >&2; exit 77; }
 [[ -f "$TEMPLATE" ]] || { echo "FATAL=TEMPLATE_NOT_FOUND:$TEMPLATE" >&2; exit 66; }
@@ -52,6 +52,22 @@ rollback(){
 }
 trap rollback EXIT
 
+same_file(){
+  local src="$1" dst="$2"
+  [[ -e "$src" && -e "$dst" ]] || return 1
+  [[ "$(readlink -f -- "$src")" == "$(readlink -f -- "$dst")" ]]
+}
+
+publish_apk_file(){
+  local src="$1" dst="$2"
+  if same_file "$src" "$dst"; then
+    chmod 0644 "$dst"
+    echo "APK_COPY=SKIP_SAME_FILE src=$src dst=$dst"
+    return 0
+  fi
+  install -o root -g root -m 0644 "$src" "$dst"
+}
+
 printf 'Radio Studio Sat — deploy da central de instalação\nUTC=%s\nPORTAL_ROOT=%s\nBACKUP=%s\n' "$TS" "$PORTAL_ROOT" "$BACKUP_ROOT"
 
 if [[ -d "$APP_DIR" ]]; then cp -a "$APP_DIR" "$BACKUP_ROOT/app.previous"; fi
@@ -64,8 +80,8 @@ APK_URL="#apk-pendente"
 APK_CLASS="disabled"
 APK_DOWNLOAD='aria-disabled="true"'
 if [[ -n "$APK_SOURCE" ]]; then
-  install -o root -g root -m 0644 "$APK_SOURCE" "$APK_DEST"
-  install -o root -g root -m 0644 "$APK_SOURCE" "$APK_LATEST"
+  publish_apk_file "$APK_SOURCE" "$APK_DEST"
+  publish_apk_file "$APK_SOURCE" "$APK_LATEST"
   APK_URL="/$DOWNLOAD_DIR/$APK_NAME"
   APK_CLASS=""
   APK_DOWNLOAD="download"
