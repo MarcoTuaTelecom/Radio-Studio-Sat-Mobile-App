@@ -1,13 +1,18 @@
 {
+  "id": "/listen/",
   "name": "Radio Studio Sat",
   "short_name": "Studio Sat",
+  "description": "Cinco rádios Studio Sat em um único aplicativo.",
   "start_url": "/listen/",
   "scope": "/listen/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#f5f7fb",
   "theme_color": "#111827",
-  "description": "Cinco rádios Studio Sat em um único aplicativo web.",
+  "orientation": "any",
+  "prefer_related_applications": false,
   "icons": [
-    {"src":"/listen/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {"src":"/listen/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"/listen/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
 }
