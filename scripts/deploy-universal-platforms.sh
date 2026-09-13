@@ -6,7 +6,7 @@ PORTAL_ROOT="${PORTAL_ROOT:-/var/www/studiosat-radio-portal}"
 PUBLIC_HOST="${PUBLIC_HOST:-https://www.radio.studiosatweb.com.br}"
 PUBLIC_DOMAIN="www.radio.studiosatweb.com.br"
 STREAM_DOMAIN="radio.studiosatweb.com.br"
-VERSION="${VERSION:-1.1.0}"
+VERSION="${VERSION:-1.2.0}"
 PWA_SRC="$REPO/web/pwa"
 PWA_DEST="$PORTAL_ROOT/listen"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -130,8 +130,8 @@ for marker in \
   'TRADUÇÃO' \
   'Nossas Emissoras' \
   'Música boa em todos os momentos' \
-  'photo-1705232497556-251915cc8505' \
-  'photo-1688760117592-c730ff312b75' \
+  'data:image/jpeg;base64,' \
+  'stationImgs' \
   'createAnalyser' \
   'mediaSession' \
   'for(let i=0;i<30;i++)' \
@@ -167,7 +167,7 @@ printf '\n===== 10. PUBLICO =====\n'
 PUB_APP="$(curl -ksS --max-time 15 "$PUBLIC_HOST/app/")"
 PUB_PWA="$(curl -ksS --max-time 15 "$PUBLIC_HOST/listen/")"
 grep -q '<title>Instalar Radio Studio Sat</title>' <<<"$PUB_APP" || fail "publico /app/ incorreto"
-grep -q 'photo-1705232497556-251915cc8505' <<<"$PUB_PWA" || fail "publico /listen/ ainda nao recebeu a interface reconstruida"
+grep -q 'stationImgs' <<<"$PUB_PWA" || fail "publico /listen/ ainda nao recebeu a interface reconstruida"
 ok "publicacao externa"
 
 printf '\n========================================\n'
