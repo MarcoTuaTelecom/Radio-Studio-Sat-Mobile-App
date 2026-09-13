@@ -61,7 +61,7 @@ export function MediaCarousel({ items, accent }: { items: CarouselItem[]; accent
 const styles = StyleSheet.create({
   card: { height: 188, borderRadius: 24, overflow: 'hidden', backgroundColor: '#EAEFF7' },
   fallback: { backgroundColor: '#F3F6FB' },
-  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,18,35,0.28)' },
+  scrim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(10,18,35,0.28)' },
   copy: { position: 'absolute', left: 18, right: 18, bottom: 24 },
   eyebrow: { color: '#FFFFFF', fontSize: 11, letterSpacing: 1.4, fontWeight: '900' },
   headline: { color: '#FFFFFF', fontSize: 20, lineHeight: 23, fontWeight: '900', marginTop: 6 },
