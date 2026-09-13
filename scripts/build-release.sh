@@ -27,6 +27,11 @@ if (( NODE_MAJOR < 22 || (NODE_MAJOR == 22 && NODE_MINOR < 13) )); then
 fi
 ok "Node $(node -v) / npm $(npm -v)"
 
+printf '\n===== 0. ASSETS NATIVOS =====\n'
+[[ -f scripts/generate-assets.mjs ]] || fail "scripts/generate-assets.mjs ausente"
+node scripts/generate-assets.mjs
+ok "assets PNG validos preparados"
+
 printf '\n===== 1. DEPENDENCIAS EXPO SDK 57 =====\n'
 npm install --no-audit --no-fund
 npx expo install --fix
@@ -80,8 +85,15 @@ npx --yes expo-doctor
 npm run typecheck
 ok "fonte pronto para build"
 
+printf '\n===== 6B. PREBUILD ANDROID LOCAL =====\n'
+rm -rf android
+CI=1 NODE_ENV=production npx expo prebuild --no-install --platform android
+[[ -f android/gradlew ]] || fail "prebuild Android nao criou android/gradlew"
+ok "prebuild Android local"
+rm -rf android
+
 printf '\n===== 7. BUILD ANDROID APK (%s) =====\n' "$PROFILE"
-$EAS build --platform android --profile "$PROFILE" --wait
+NODE_ENV=production $EAS build --platform android --profile "$PROFILE" --wait
 ok "EAS Build terminou"
 
 printf '\n===== 8. LOCALIZANDO APK =====\n'
