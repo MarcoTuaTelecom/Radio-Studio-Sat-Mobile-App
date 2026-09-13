@@ -1,0 +1,13 @@
+{
+  "name": "Radio Studio Sat",
+  "short_name": "Studio Sat",
+  "start_url": "/listen/",
+  "scope": "/listen/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#111827",
+  "description": "Cinco rádios Studio Sat em um único aplicativo web.",
+  "icons": [
+    {"src":"/listen/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
