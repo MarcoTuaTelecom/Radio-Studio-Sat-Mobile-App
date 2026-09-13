@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CarouselItem } from '../types';
@@ -13,6 +13,17 @@ function VideoCard({ item }: { item: CarouselItem }) {
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
+function MiniWave() {
+  const heights = [7, 12, 18, 26, 18, 12, 7];
+  return (
+    <View style={styles.miniWave}>
+      {heights.map((height, index) => (
+        <View key={index} style={[styles.miniWaveBar, { height }]} />
+      ))}
+    </View>
+  );
+}
+
 export function MediaCarousel({ items, accent }: { items: CarouselItem[]; accent: string }) {
   const fallback = useMemo<CarouselItem[]>(
     () => [
@@ -21,8 +32,8 @@ export function MediaCarousel({ items, accent }: { items: CarouselItem[]; accent
         type: 'image',
         url: '',
         eyebrow: 'PUBLICIDADE',
-        headline: 'Música boa em todos os momentos',
-        caption: 'Studio Sat — cinco rádios, uma só paixão.',
+        headline: 'Música boa\nem todos\nos momentos',
+        caption: 'Viva mais música',
         durationMs: 10000,
       },
     ],
@@ -41,6 +52,8 @@ export function MediaCarousel({ items, accent }: { items: CarouselItem[]; accent
     return () => clearTimeout(timer);
   }, [current.durationMs, slides.length]);
 
+  const goNext = () => setIndex((value) => (value + 1) % slides.length);
+
   return (
     <View style={styles.card}>
       {current.url ? (
@@ -50,41 +63,97 @@ export function MediaCarousel({ items, accent }: { items: CarouselItem[]; accent
           <Image source={{ uri: current.url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         )
       ) : (
-        <LinearGradient colors={['#173C8B', '#7352E5', '#E149B8']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['#153A82', '#7451DF', '#D94AB8']} style={StyleSheet.absoluteFill} />
       )}
-      <LinearGradient colors={['rgba(6,16,45,0.10)', 'rgba(8,20,48,0.82)']} style={StyleSheet.absoluteFill} />
 
-      <View style={styles.badge}><Text style={styles.badgeText}>{current.eyebrow ?? (current.type === 'video' ? 'VÍDEO' : 'DESTAQUE')}</Text></View>
-      <View style={styles.copy}>
-        {!!current.headline && <Text style={styles.headline} numberOfLines={2}>{current.headline}</Text>}
-        {!!current.caption && <Text style={styles.caption} numberOfLines={2}>{current.caption}</Text>}
+      <LinearGradient
+        colors={['rgba(7,15,42,0.02)', 'rgba(8,18,48,0.42)', 'rgba(7,17,45,0.88)']}
+        locations={[0, 0.48, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>{current.eyebrow ?? (current.type === 'video' ? 'VÍDEO' : 'DESTAQUE')}</Text>
       </View>
-      <View style={styles.playCircle}><Text style={styles.playIcon}>▶</Text></View>
-      <View style={styles.brand}><Text style={styles.brandWave}>▥</Text><Text style={styles.brandText}>Studio Sat</Text></View>
+
+      <View style={styles.copy}>
+        {!!current.headline && <Text style={styles.headline} numberOfLines={3}>{current.headline}</Text>}
+      </View>
+
+      <Pressable onPress={goNext} style={styles.playCircle} accessibilityRole="button" accessibilityLabel="Próximo destaque">
+        <Text style={styles.playIcon}>▶</Text>
+      </Pressable>
+
+      <View style={styles.rightCopy}>
+        <Text style={styles.slogan} numberOfLines={2}>{current.caption || 'Viva mais música'}</Text>
+        <MiniWave />
+        <Text style={styles.brandText}>Studio Sat</Text>
+      </View>
+
       <View style={styles.dots}>
         {slides.map((item, dotIndex) => (
-          <View key={item.id} style={[styles.dot, dotIndex === index % slides.length && styles.dotActive]} />
+          <Pressable key={item.id} onPress={() => setIndex(dotIndex)} accessibilityLabel={`Destaque ${dotIndex + 1}`}>
+            <View style={[styles.dot, dotIndex === index % slides.length && styles.dotActive]} />
+          </Pressable>
         ))}
       </View>
+
       <View style={[styles.accentLine, { backgroundColor: accent }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { height: 184, borderRadius: 22, overflow: 'hidden', backgroundColor: '#233C7A', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)' },
-  badge: { position: 'absolute', top: 12, left: 14, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.75)', backgroundColor: 'rgba(17,26,64,0.66)', paddingHorizontal: 9, paddingVertical: 5 },
-  badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.7 },
-  copy: { position: 'absolute', left: 16, right: 118, bottom: 30 },
-  headline: { color: '#FFFFFF', fontSize: 21, lineHeight: 22, fontWeight: '900', letterSpacing: -0.6 },
-  caption: { color: 'rgba(255,255,255,0.86)', fontSize: 11, lineHeight: 15, marginTop: 5 },
-  playCircle: { position: 'absolute', width: 48, height: 48, borderRadius: 24, left: '50%', top: '50%', marginLeft: -24, marginTop: -24, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: 'rgba(45,55,126,0.46)', alignItems: 'center', justifyContent: 'center' },
-  playIcon: { color: '#FFFFFF', fontSize: 18, marginLeft: 3 },
-  brand: { position: 'absolute', right: 15, bottom: 24, alignItems: 'center' },
-  brandWave: { color: '#8FE8FF', fontSize: 24, lineHeight: 24, fontWeight: '900' },
-  brandText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  dots: { position: 'absolute', left: 0, right: 0, bottom: 9, flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  card: {
+    height: 182,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#233C7A',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.66)',
+    shadowColor: '#30406B',
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  badge: {
+    position: 'absolute',
+    top: 11,
+    left: 13,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.80)',
+    backgroundColor: 'rgba(17,26,64,0.70)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: 0.65 },
+  copy: { position: 'absolute', left: 15, right: 160, bottom: 27 },
+  headline: { color: '#FFFFFF', fontSize: 20, lineHeight: 20, fontWeight: '900', letterSpacing: -0.55 },
+  playCircle: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    left: '50%',
+    top: '50%',
+    marginLeft: -24,
+    marginTop: -24,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: 'rgba(47,55,128,0.48)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playIcon: { color: '#FFFFFF', fontSize: 18, marginLeft: 3, fontWeight: '900' },
+  rightCopy: { position: 'absolute', right: 14, bottom: 21, width: 105, alignItems: 'flex-end' },
+  slogan: { color: '#FFFFFF', fontSize: 18, lineHeight: 18, fontStyle: 'italic', fontWeight: '700', textAlign: 'right' },
+  miniWave: { height: 28, flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 5 },
+  miniWaveBar: { width: 3, borderRadius: 99, backgroundColor: '#B5F2FF' },
+  brandText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', marginTop: -1 },
+  dots: { position: 'absolute', left: 0, right: 0, bottom: 7, flexDirection: 'row', justifyContent: 'center', gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.42)' },
-  dotActive: { width: 17, backgroundColor: '#FFFFFF' },
-  accentLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, opacity: 0.8 },
+  dotActive: { width: 18, backgroundColor: '#FFFFFF' },
+  accentLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, opacity: 0.82 },
 });
