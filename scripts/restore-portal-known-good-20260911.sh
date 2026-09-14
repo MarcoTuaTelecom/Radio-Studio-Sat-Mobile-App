@@ -242,7 +242,7 @@ echo "PUBLIC_PORTAL_HTTP=$ext_code"
 echo
 echo "===== 8. ESTADO FINAL ====="
 nginx -T > "$BK/nginx-T.after.txt" 2>&1
-ssystemctl is-active nginx
+systemctl is-active nginx
 systemctl is-active studiosat-portal-cms.service
 
 echo "PORTAL_ONLINE=PASS"
