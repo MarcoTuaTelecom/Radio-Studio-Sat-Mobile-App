@@ -205,15 +205,20 @@ echo "PLAYER_HTTP=$player_code"
 if cmp -s "$PORTAL_BODY" "$SRC_V71/live-portal-before.html"; then echo "PORTAL_EXACT_REFERENCE=YES"; else echo "PORTAL_EXACT_REFERENCE=NO_BUT_HTTP_200"; fi
 if cmp -s "$PLAYER_BODY" "$SRC_V71/live-player-before.html"; then echo "PLAYER_EXACT_REFERENCE=YES"; else echo "PLAYER_EXACT_REFERENCE=NO_BUT_HTTP_200"; fi
 
-api_code="$(curl -ksS --resolve "$PORTAL_HOST:443:127.0.0.1" -o "$BK/content.json" -w '%{http_code}' "https://$PORTAL_HOST/api/content" || true)"
-echo "API_CONTENT_HTTP=$api_code"
-[[ "$api_code" == 200 ]] || fail "API_CONTENT_HTTP_$api_code"
+# O snapshot pre-V7.1 usa a API publica historica /api/public/content.
+# /api/content so passou a ser usado em versoes posteriores do CMS.
+api_code="$(curl -ksS --resolve "$PORTAL_HOST:443:127.0.0.1" -o "$BK/content.json" -w '%{http_code}' "https://$PORTAL_HOST/api/public/content" || true)"
+echo "API_PUBLIC_CONTENT_HTTP=$api_code"
+[[ "$api_code" == 200 ]] || fail "API_PUBLIC_CONTENT_HTTP_$api_code"
 python3 - "$BK/content.json" <<'PY'
 import json,sys
 p=sys.argv[1]
 d=json.load(open(p,encoding='utf-8'))
+expected={"radioprincipal","radiopop","radiorock","radioclassicas","radiocountry"}
 assert isinstance(d,dict)
-print('API_JSON=PASS')
+assert len(d.get("stations",[])) == 5
+assert {s.get("id") for s in d["stations"]} == expected
+print('API_PUBLIC_JSON=PASS_5_STATIONS')
 PY
 
 echo
