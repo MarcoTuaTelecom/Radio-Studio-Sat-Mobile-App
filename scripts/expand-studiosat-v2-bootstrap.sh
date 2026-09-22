@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ARCHIVE=".bootstrap/studiosat-v2-v0.1.0.tar.gz"
-EXPECTED="0bab426335ac7e69e8374b9cb7888c716d8fbaa12a55f7a875322f076c18cb19"
+EXPECTED="cbf3d964efdfed86d9826f0ba458beeb78dce4ddb698849a81c741bf0d9485b5"
 
 [[ -f "$ARCHIVE" ]] || { echo "Archive ausente"; exit 1; }
 
@@ -12,6 +12,7 @@ ACTUAL="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
   exit 1
 }
 
+tar -tzf "$ARCHIVE" >/dev/null
 tar -xzf "$ARCHIVE" -C .
 
 bash studiosat-native-v2/scripts/validate.sh
