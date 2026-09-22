@@ -25,12 +25,10 @@ tar -xzf "$ARCHIVE" -C .
 
 bash studiosat-native-v2/scripts/validate.sh
 
-mkdir -p .github/workflows
-cp studiosat-native-v2/.github/workflows/ci.yml .github/workflows/studiosat-native-v2-ci.yml
-rm -rf studiosat-native-v2/.github
-
+# O CI fica documentado dentro da arvore V2.
+# O workflow executavel da raiz sera criado pela conexao GitHub autorizada,
+# nao pelo GITHUB_TOKEN do runner.
 rm -rf .bootstrap
 rm -f scripts/expand-studiosat-v2-bootstrap.sh
-rm -f .github/workflows/studiosat-v2-bootstrap.yml
 
 echo "Studio Sat Native V2 expandido, validado e pronto para commit."
