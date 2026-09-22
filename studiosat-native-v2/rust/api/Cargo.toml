@@ -1,0 +1,15 @@
+[package]
+name = "studiosat-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+studiosat-core = { path = "../core" }
+axum = "0.8.9"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "fs"] }
+serde.workspace = true
+serde_json.workspace = true
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

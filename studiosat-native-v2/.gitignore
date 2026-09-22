@@ -1,0 +1,11 @@
+target/
+**/target/
+web/dist/
+web/pkg/
+android/.gradle/
+android/**/build/
+ios/*.xcodeproj/
+.DS_Store
+*.log
+.env
+deploy/generated/

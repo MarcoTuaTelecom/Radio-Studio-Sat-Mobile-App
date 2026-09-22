@@ -1,0 +1,135 @@
+{
+  "stations": [
+    {
+      "id": "radioprincipal",
+      "name": "Rádio Principal",
+      "tagline": "O melhor da programação Studio Sat",
+      "stream_url": "https://radio.studiosatweb.com.br/radioprincipal/index.m3u8",
+      "logo_url": null,
+      "enabled": true
+    },
+    {
+      "id": "radiopop",
+      "name": "Rádio Pop",
+      "tagline": "Pop nacional e internacional",
+      "stream_url": "https://radio.studiosatweb.com.br/radiopop/index.m3u8",
+      "logo_url": null,
+      "enabled": true
+    },
+    {
+      "id": "radiorock",
+      "name": "Rádio Rock",
+      "tagline": "Rock clássico e contemporâneo",
+      "stream_url": "https://radio.studiosatweb.com.br/radiorock/index.m3u8",
+      "logo_url": null,
+      "enabled": true
+    },
+    {
+      "id": "radioclassicas",
+      "name": "Rádio Clássicas",
+      "tagline": "Clássicos que atravessam gerações",
+      "stream_url": "https://radio.studiosatweb.com.br/radioclassicas/index.m3u8",
+      "logo_url": null,
+      "enabled": true
+    },
+    {
+      "id": "radiocountry",
+      "name": "Rádio Country",
+      "tagline": "Country americano e grandes sucessos",
+      "stream_url": "https://radio.studiosatweb.com.br/radiocountry/index.m3u8",
+      "logo_url": null,
+      "enabled": true
+    }
+  ],
+  "now_playing": {
+    "radioprincipal": {
+      "station_id": "radioprincipal",
+      "title": "Programação ao vivo",
+      "artist": "Studio Sat",
+      "album": null,
+      "artwork_url": null,
+      "started_at": null
+    },
+    "radiopop": {
+      "station_id": "radiopop",
+      "title": "Programação ao vivo",
+      "artist": "Studio Sat",
+      "album": null,
+      "artwork_url": null,
+      "started_at": null
+    },
+    "radiorock": {
+      "station_id": "radiorock",
+      "title": "Programação ao vivo",
+      "artist": "Studio Sat",
+      "album": null,
+      "artwork_url": null,
+      "started_at": null
+    },
+    "radioclassicas": {
+      "station_id": "radioclassicas",
+      "title": "Programação ao vivo",
+      "artist": "Studio Sat",
+      "album": null,
+      "artwork_url": null,
+      "started_at": null
+    },
+    "radiocountry": {
+      "station_id": "radiocountry",
+      "title": "Programação ao vivo",
+      "artist": "Studio Sat",
+      "album": null,
+      "artwork_url": null,
+      "started_at": null
+    }
+  },
+  "schedule": {
+    "radioprincipal": [
+      {
+        "station_id": "radioprincipal",
+        "start": "00:00",
+        "end": "23:59",
+        "title": "Programação Studio Sat",
+        "presenter": null
+      }
+    ],
+    "radiopop": [
+      {
+        "station_id": "radiopop",
+        "start": "00:00",
+        "end": "23:59",
+        "title": "Programação Studio Sat",
+        "presenter": null
+      }
+    ],
+    "radiorock": [
+      {
+        "station_id": "radiorock",
+        "start": "00:00",
+        "end": "23:59",
+        "title": "Programação Studio Sat",
+        "presenter": null
+      }
+    ],
+    "radioclassicas": [
+      {
+        "station_id": "radioclassicas",
+        "start": "00:00",
+        "end": "23:59",
+        "title": "Programação Studio Sat",
+        "presenter": null
+      }
+    ],
+    "radiocountry": [
+      {
+        "station_id": "radiocountry",
+        "start": "00:00",
+        "end": "23:59",
+        "title": "Programação Studio Sat",
+        "presenter": null
+      }
+    ]
+  },
+  "news": [],
+  "promotions": []
+}

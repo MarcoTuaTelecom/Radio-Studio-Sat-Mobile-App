@@ -1,0 +1,20 @@
+[Unit]
+Description=Studio Sat Native V2 API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tpsmedia
+Group=tpsmedia
+Environment=RUST_LOG=studiosat_api=info,tower_http=info
+Environment=STUDIOSAT_BIND=127.0.0.1:9080
+Environment=STUDIOSAT_CONTENT=/etc/studiosat-v2/data/content.json
+ExecStart=/opt/studiosat-v2/bin/studiosat-api
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

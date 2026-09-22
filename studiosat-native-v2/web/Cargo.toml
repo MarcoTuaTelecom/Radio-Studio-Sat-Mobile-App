@@ -1,0 +1,34 @@
+[package]
+name = "studiosat-web"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+studiosat-core = { path = "../rust/core" }
+serde.workspace = true
+serde_json.workspace = true
+wasm-bindgen = "0.2.128"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+console_error_panic_hook = "0.1"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "Document",
+  "Element",
+  "Event",
+  "EventTarget",
+  "HtmlAudioElement",
+  "HtmlButtonElement",
+  "HtmlElement",
+  "HtmlInputElement",
+  "Node",
+  "Response",
+  "Window",
+  "console"
+]
